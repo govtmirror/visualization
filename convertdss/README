@@ -1,0 +1,3 @@
+devtools::install_github("eheisman/DSS-Rip",args="--no-multiarch")
+
+- How to represent dates, indicies or seconds since....
