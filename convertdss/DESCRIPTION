@@ -1,8 +1,9 @@
 Package: convertdss
-Title: What the package does (short line)
+Title: Converts from DSS to other formats
 Version: 0.1
-Authors@R: "First Last <first.last@example.com> [aut, cre]"
-Description: What the package does (paragraph)
-Depends: R (>= 3.0.3)
-License: What license is it under?
+Authors@R: "Cameron Bracken <cbracken@usbr.gov> [aut, cre]"
+Description: Converts from DSS to other formats
+Depends: R (>= 3.0.3), dssrip, RSQLite, lubridate, data.table
+License: MIT
 LazyData: true
+

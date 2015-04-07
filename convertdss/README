@@ -1,3 +1,4 @@
 devtools::install_github("eheisman/DSS-Rip",args="--no-multiarch")
 
-- How to represent dates, indicies or seconds since....
+```
+v = read_dss_variable('AWO_02_NA',dss)
