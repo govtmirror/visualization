@@ -1,6 +1,4 @@
-#' function  
-#' 
-#' initilizes a ncdf file to recieve dss data
+#' Initilizes a ncdf file to recieve dss data
 #' 
 #' Uses an open dss file. A time dimension is defined with a corresponding 
 #' dimensional variable (a variable with the same name as the dimension).
@@ -12,8 +10,12 @@
 #' makes it vary tricky to convert an arbirtrary dss file which may have irregular 
 #' timeseries data. For this reason, initialization of time stamps is left to the user.
 #' 
-#' @return 
-#' @note NOTE
+#' @param dss a dss file object from \code{\link[dssrip]{opendss}}
+#' @param datetimes a vector of datetimes (such as from \code{\link[libridate]{ymd_hms}})
+#'                  corresponding to the exact times to set up in the nc file
+#'                  
+#' 
+#' @return An RNetCDF file handle
 #' @author Cameron Bracken
 #' @export 
 dss_to_ncdf_init <- function(dss,datetimes,nc_file='convertdss.nc',overwrite=TRUE){
@@ -33,16 +35,19 @@ dss_to_ncdf_init <- function(dss,datetimes,nc_file='convertdss.nc',overwrite=TRU
 
     return(nc)
 }
-
-#' function  
-#' 
+ 
 #' Writes a dss variable to an existing netcdf file
 #' 
 #' Uses the output of read_dss_variable, creating a new variable in an _existing_
 #' netcdf file
 #' 
-#' @return new netcdf file handle
-#' @note NOTE
+#' @param v a variable object returned by \code{\link{read_dss_variable}}
+#' @param nc A RNetCDF file handle set up by \code{\link{dss_to_ncdf_init}}
+#' @param nc_datetimes the datetimes from the time variable in the netcdf file
+#'                     this is for efficiency so the times do not have to be 
+#'                     read and converted for each new variable written.
+#' 
+#' @return TRUE if the write was successful, false otherwise
 #' @author Cameron Bracken
 #' @export 
 dss_var_to_ncdf <- function(v, nc, nc_datetimes=NULL){
@@ -57,27 +62,36 @@ dss_var_to_ncdf <- function(v, nc, nc_datetimes=NULL){
 
     dss_datetimes = v$data$datetime
 
-    # check if dates match up
-    #first_dates_match = (dss_datetimes[1] == nc_datetimes[1])
-    #lengths_match = (length(dss_datetimes) == length(nc_datetimes))
-    all_match = all(dss_datetimes == nc_datetimes[1:length(dss_datetimes)])
-    init_offset = (dss_datetimes[1] %in% nc_datetimes)
+    # if either data is longer, use the shorter length 
+    ldss = length(dss_datetimes)
+    lnc = length(nc_datetimes)
+    ml = min(ldss,lnc)
+
+    # check if dates match up, from the first date
+    all_match = all(dss_datetimes[1:ml] == nc_datetimes[1:ml])
+
+    # check also if the dss data starts later then the netcdf first time,
+    # no support for any other cases
+    first_dates_match = (dss_datetimes[1] == nc_datetimes[1])
+    init_offset = (dss_datetimes[1] %in% nc_datetimes & !first_dates_match)
 
     written = FALSE
     if(all_match){
+
          # define the variable, with no data
         var.def.nc(nc, var_name, "NC_DOUBLE", "time")
         att.put.nc(nc, var_name, "missing_value", "NC_DOUBLE", -99999.9)
+
         # we can write all the data from the index
         var.put.nc(nc, var_name, v$data$value)
         written = TRUE
+
     }else if(init_offset){
+
         # the value starts at another index but we need to 
         # check datetimes all match up with the existing nc datetimes
         # TODO: possibly grow the time dimension
         init_index = which(dss_datetimes[1] == nc_datetimes)
-        ldss = length(dss_datetimes)
-        lnc = length(nc_datetimes)
 
         runs_over = (ldss > length(nc_datetimes[init_index:lnc]))
 
@@ -102,8 +116,6 @@ dss_var_to_ncdf <- function(v, nc, nc_datetimes=NULL){
 
 }
 
-#' dss_to_netcdf  
-#' 
 #' Convert dss to netcdf
 #' 
 #' This function does the bulk of the work to convert dss data to netcdf,
@@ -159,9 +171,7 @@ read_dss_list <- function(dss,variable_parts='B'){
     lapply(d,'[[',1)
 }
 
-#' function  
-#' 
-#' short description
+#' Read a single dss variable out of a dss file
 #' 
 #' This function will read a single variable out of a DSS file, 
 #' it will read the list of variables from the dss file and parse it
@@ -173,7 +183,16 @@ read_dss_list <- function(dss,variable_parts='B'){
 #' in DSS. For some strange reason DSS does not want to put all its data in
 #' a single path.
 #'
+#' A 'variable' is a unique name refering to a collection of paths, it can be 
+#' defined by a dingle dss path part (default is "B") or two or more path parts
+#' which will be separated by an "_"
 #'
+#' @param variable dss variable defined by the combination of one or more path parts
+#' @param dss a dss file handle from opendss
+#' @param parts a dss path parts data.table returned from separate_path_parts, if NULL, 
+#'              it will be generated from the dss file (can take time for big dss files)
+#' @param variable_parts the letters corresponding to the path parts to use as a unique 
+#'                       identifier for a variable, default "B"
 #' 
 #' @return list containing dss data
 #' @note NOTE
@@ -196,13 +215,11 @@ read_dss_variable <- function(variable,dss,parts=NULL,variable_parts='B'){
     return(list(data=dt,metadata=metadata,variable=variable))
 }
 
-#' function  
-#' 
-#' short description
+#' Read a variable from a dss file as defined by a collection of paths
 #' 
 #' Long Description
 #' 
-#' @return list of lists containing dss data
+#' @return a list of data from dss
 #' @note NOTE
 #' @author Cameron Bracken
 #' @export 
