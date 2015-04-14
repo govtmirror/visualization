@@ -3,7 +3,12 @@ Title: Converts from DSS to other formats
 Version: 0.1
 Authors@R: "Cameron Bracken <cbracken@usbr.gov> [aut, cre]"
 Description: Converts from DSS to other formats
-Depends: R (>= 3.0.3), dssrip, RSQLite, lubridate, data.table
+Depends:
+    R (>= 3.0.3),
+    dssrip,
+    RSQLite,
+    lubridate,
+    data.table,
+    RNetCDF
 License: MIT
 LazyData: true
-
